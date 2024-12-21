@@ -3,7 +3,7 @@ based on the sections and subsections in the HTML file."""
 
 import os
 import sys
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, Tag, NavigableString
 
 
 def print_python_version():
@@ -56,6 +56,7 @@ def split_html(input_file, output_dir, css_dir):
     head = soup.find('head')
     if head:
         update_css_paths(head, css_dir)
+        head_content = str(head)
 
     sections = soup.find_all(id=lambda x: x and x.startswith('section-'))
     for section in sections:
@@ -70,18 +71,28 @@ def split_html(input_file, output_dir, css_dir):
         section_file = os.path.join(
             section_folder, f"{section_folder_name}.html")
         with open(section_file, 'w', encoding='utf-8') as file:
-            file.write(str(section))
+            file.write(f"<html><head>{
+                       head_content}</head><body>{str(section)}</body></html>")
         print(f"Saved section {section_id} to {section_file}")
 
         # Split <h2> children into their own files
         h2_tags = section.find_all('h2', class_="compendium-hr heading-anchor")
         for h2_tag in h2_tags:
-            subsection_id = h2_tag.get('id', f"subsection-{hash(h2_tag)}")
-            content = [str(h2_tag)]
-            next_node = h2_tag.find_next_sibling()
-            while next_node and not (isinstance(next_node, Tag) and next_node.name == 'h2' and 'compendium-hr heading-anchor' in next_node.get('class', [])):
-                content.append(str(next_node))
+            subsection_id = h2_tag.get(
+                'id', None) or f"subsection-{hash(h2_tag)}"
+            # Gather all content following this <h2> tag until the next <h2>
+            content = [str(h2_tag)]  # Start with the <h2> tag itself
+            next_node = h2_tag
+            while True:
                 next_node = next_node.find_next_sibling()
+                if next_node is None:
+                    break
+                if isinstance(next_node, NavigableString):
+                    content.append(next_node.strip())
+                elif isinstance(next_node, Tag):
+                    if next_node.name == "h2":
+                        break
+                    content.append(str(next_node))
 
             subsection_folder = os.path.join(section_folder, 'subsections')
             os.makedirs(subsection_folder, exist_ok=True)
@@ -89,13 +100,14 @@ def split_html(input_file, output_dir, css_dir):
                 subsection_folder, f"{subsection_id}.html")
 
             # Create a BeautifulSoup object for the subsection content
-            subsection_soup = BeautifulSoup('\n'.join(content), 'html.parser')
+            subsection_soup = BeautifulSoup(''.join(content), 'html.parser')
 
             # Update image paths in the subsection
             update_img_paths(subsection_soup, css_dir, subsection_folder)
 
             with open(subsection_file, 'w', encoding='utf-8') as file:
-                file.write(str(subsection_soup))
+                file.write(f"<html><head>{
+                           head_content}</head><body>{str(subsection_soup)}</body></html>")
             print(f"Saved subsection {subsection_id} to {subsection_file}")
 
     print("HTML splitting complete!")
