@@ -58,11 +58,13 @@ def split_html(input_file, output_dir, css_dir):
         update_css_paths(head, css_dir)
         head_content = str(head.prettify())
 
+    section_num = 0
     sections = soup.find_all(id=lambda x: x and x.startswith('section-'))
     for section in sections:
+        section_num = section_num + 1
         section_id = section.get('id')
         section_folder_name = section_id.replace('section-', '')
-        section_folder = os.path.join(output_dir, section_folder_name)
+        section_folder = os.path.join(output_dir, f"{section_num:03d}_{section_folder_name}")
         os.makedirs(section_folder, exist_ok=True)
 
         # Update image paths in the section
@@ -81,8 +83,10 @@ def split_html(input_file, output_dir, css_dir):
                 print(f"Saved section {section_id} to {section_file}")
 
         # Split <h2> children into their own files
+        subsection_num = 0
         h2_tags = section.find_all('h2', class_="compendium-hr heading-anchor")
         for h2_tag in h2_tags:
+            subsection_num = subsection_num + 1
             subsection_id = h2_tag.get(
                 'id', None) or f"subsection-{hash(h2_tag)}"
             # Gather all content following this <h2> tag until the next <h2>
@@ -102,7 +106,7 @@ def split_html(input_file, output_dir, css_dir):
             subsection_folder = os.path.join(section_folder, 'subsections')
             os.makedirs(subsection_folder, exist_ok=True)
             subsection_file = os.path.join(
-                subsection_folder, f"{subsection_id}.html")
+                subsection_folder, f"{subsection_num:03d}_{subsection_id}.html")
 
             # Create a BeautifulSoup object for the subsection content
             subsection_soup = BeautifulSoup(''.join(content), 'html.parser')
