@@ -1,4 +1,4 @@
-"""Module used to seperate the HTML file into multiple files 
+"""Module used to seperate the HTML file into multiple files
 based on the sections and subsections in the HTML file."""
 
 import os
@@ -56,7 +56,7 @@ def split_html(input_file, output_dir, css_dir):
     head = soup.find('head')
     if head:
         update_css_paths(head, css_dir)
-        head_content = str(head)
+        head_content = str(head.prettify())
 
     sections = soup.find_all(id=lambda x: x and x.startswith('section-'))
     for section in sections:
@@ -71,9 +71,14 @@ def split_html(input_file, output_dir, css_dir):
         section_file = os.path.join(
             section_folder, f"{section_folder_name}.html")
         with open(section_file, 'w', encoding='utf-8') as file:
-            file.write(f"<html><head>{
-                       head_content}</head><body>{str(section)}</body></html>")
-        print(f"Saved section {section_id} to {section_file}")
+            if head:
+                file.write(f"""<html><head>{
+                    head_content}</head><body>{
+                        str(section)}</body></html>""")
+                print(f"Saved section {section_id} to {section_file}")
+            else:
+                file.write(f"{str(section)}")
+                print(f"Saved section {section_id} to {section_file}")
 
         # Split <h2> children into their own files
         h2_tags = section.find_all('h2', class_="compendium-hr heading-anchor")
@@ -106,8 +111,8 @@ def split_html(input_file, output_dir, css_dir):
             update_img_paths(subsection_soup, css_dir, subsection_folder)
 
             with open(subsection_file, 'w', encoding='utf-8') as file:
-                file.write(f"<html><head>{
-                           head_content}</head><body>{str(subsection_soup)}</body></html>")
+                file.write(f"""<html><head>{
+                           head_content}</head><body>{str(subsection_soup)}</body></html>""")
             print(f"Saved subsection {subsection_id} to {subsection_file}")
 
     print("HTML splitting complete!")
@@ -116,7 +121,8 @@ def split_html(input_file, output_dir, css_dir):
 if __name__ == "__main__":
     print_python_version()
     if len(sys.argv) != 4:
-        print("Usage: python html_splitter.py <input_html_file> <output_directory> <css_folder>")
+        print(
+            "Usage: python3 HtmlChopper.py <input_html_file> <output_directory> <css_folder>")
         sys.exit(1)
 
     input_html = sys.argv[1]
