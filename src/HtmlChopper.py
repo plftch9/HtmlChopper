@@ -55,7 +55,6 @@ def split_html(input_file, output_dir, css_dir):
 
     section_num = 0
     doctype = '<!DOCTYPE html>'
-    html_tag = soup.find('html')
     head = soup.find('head')
     if head:
         update_css_paths(head, css_dir)
@@ -81,7 +80,7 @@ def split_html(input_file, output_dir, css_dir):
                     head_content}<body>{str(section)}</body></html>""")
                 print(f"Saved section {section_id} to {section_file}")
             else:
-                file.write(f"""{doctype}\n<html {html_tag.attrs}
+                file.write(f"""{doctype}\n<html
                            ><head></head><body>{str(section)}</body></html>""")
                 print(f"Saved section {section_id} to {section_file}")
 
@@ -119,7 +118,7 @@ def split_html(input_file, output_dir, css_dir):
 
             with open(subsection_file, 'w', encoding='utf-8') as file:
                 file.write(f"""{doctype}\n{
-                           head_content}</head><body>{str(subsection_soup)}</body></html>""")
+                           head_content}<body>{str(subsection_soup)}</body></html>""")
             print(f"Saved subsection {subsection_id} to {subsection_file}")
 
     print("HTML splitting complete!")
