@@ -53,18 +53,21 @@ def split_html(input_file, output_dir, css_dir):
     with open(input_file, 'r', encoding='utf-8') as file:
         soup = BeautifulSoup(file, 'html.parser')
 
+    section_num = 0
+    doctype = '<!DOCTYPE html>'
+    html_tag = soup.find('html')
     head = soup.find('head')
     if head:
         update_css_paths(head, css_dir)
         head_content = str(head.prettify())
 
-    section_num = 0
     sections = soup.find_all(id=lambda x: x and x.startswith('section-'))
     for section in sections:
-        section_num = section_num + 1
+        section_num += 1
         section_id = section.get('id')
         section_folder_name = section_id.replace('section-', '')
-        section_folder = os.path.join(output_dir, f"{section_num:03d}_{section_folder_name}")
+        section_folder = os.path.join(
+            output_dir, f"{section_num:03d}_{section_folder_name}")
         os.makedirs(section_folder, exist_ok=True)
 
         # Update image paths in the section
@@ -74,19 +77,19 @@ def split_html(input_file, output_dir, css_dir):
             section_folder, f"{section_folder_name}.html")
         with open(section_file, 'w', encoding='utf-8') as file:
             if head:
-                file.write(f"""<html><head>{
-                    head_content}</head><body>{
-                        str(section)}</body></html>""")
+                file.write(f"""{doctype}\n<html>{
+                    head_content}<body>{str(section)}</body></html>""")
                 print(f"Saved section {section_id} to {section_file}")
             else:
-                file.write(f"{str(section)}")
+                file.write(f"""{doctype}\n<html {html_tag.attrs}
+                           ><head></head><body>{str(section)}</body></html>""")
                 print(f"Saved section {section_id} to {section_file}")
 
         # Split <h2> children into their own files
         subsection_num = 0
         h2_tags = section.find_all('h2', class_="compendium-hr heading-anchor")
         for h2_tag in h2_tags:
-            subsection_num = subsection_num + 1
+            subsection_num += 1
             subsection_id = h2_tag.get(
                 'id', None) or f"subsection-{hash(h2_tag)}"
             # Gather all content following this <h2> tag until the next <h2>
@@ -115,7 +118,7 @@ def split_html(input_file, output_dir, css_dir):
             update_img_paths(subsection_soup, css_dir, subsection_folder)
 
             with open(subsection_file, 'w', encoding='utf-8') as file:
-                file.write(f"""<html><head>{
+                file.write(f"""{doctype}\n{
                            head_content}</head><body>{str(subsection_soup)}</body></html>""")
             print(f"Saved subsection {subsection_id} to {subsection_file}")
 
@@ -125,8 +128,7 @@ def split_html(input_file, output_dir, css_dir):
 if __name__ == "__main__":
     print_python_version()
     if len(sys.argv) != 4:
-        print(
-            "Usage: python3 HtmlChopper.py <input_html_file> <output_directory> <css_folder>")
+        print("Usage: python html_splitter.py <input_html_file> <output_directory> <css_folder>")
         sys.exit(1)
 
     input_html = sys.argv[1]
