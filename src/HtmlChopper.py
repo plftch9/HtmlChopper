@@ -3,6 +3,7 @@ based on the sections and subsections in the HTML file."""
 
 import os
 import sys
+import shutil
 from bs4 import BeautifulSoup, Tag, NavigableString
 
 
@@ -42,6 +43,16 @@ def update_img_paths(soup, css_dir, output_dir):
                 print(f"Image file does not exist: {img_file_path}")
 
 
+def copy_css_folder(css_dir, target_dir):
+    """
+    Copies the CSS folder to the target directory.
+    """
+    target_css_dir = os.path.join(target_dir, os.path.basename(css_dir))
+    if os.path.exists(target_css_dir):
+        shutil.rmtree(target_css_dir)
+    shutil.copytree(css_dir, target_css_dir)
+
+
 def split_html(input_file, output_dir, css_dir):
     """
     Splits an HTML file by extracting sections with IDs matching "section-*",
@@ -57,7 +68,7 @@ def split_html(input_file, output_dir, css_dir):
     doctype = '<!DOCTYPE html>'
     head = soup.find('head')
     if head:
-        update_css_paths(head, css_dir)
+        # update_css_paths(head, css_dir)
         head_content = str(head.prettify())
 
     sections = soup.find_all(id=lambda x: x and x.startswith('section-'))
@@ -70,7 +81,10 @@ def split_html(input_file, output_dir, css_dir):
         os.makedirs(section_folder, exist_ok=True)
 
         # Update image paths in the section
-        update_img_paths(section, css_dir, section_folder)
+        # update_img_paths(section, css_dir, section_folder)
+
+        # Copy the CSS folder to the section folder
+        copy_css_folder(css_dir, section_folder)
 
         section_file = os.path.join(
             section_folder, f"{section_folder_name}.html")
@@ -114,7 +128,10 @@ def split_html(input_file, output_dir, css_dir):
             subsection_soup = BeautifulSoup(''.join(content), 'html.parser')
 
             # Update image paths in the subsection
-            update_img_paths(subsection_soup, css_dir, subsection_folder)
+            # update_img_paths(subsection_soup, css_dir, subsection_folder)
+
+            # Copy the CSS folder to the section folder
+            copy_css_folder(css_dir, subsection_folder)
 
             with open(subsection_file, 'w', encoding='utf-8') as file:
                 file.write(f"""{doctype}\n{
