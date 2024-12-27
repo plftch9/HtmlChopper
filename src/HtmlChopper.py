@@ -53,6 +53,30 @@ def copy_css_folder(css_dir, target_dir):
     shutil.copytree(css_dir, target_css_dir)
 
 
+def track_used_images(soup):
+    """
+    Tracks the images used in the provided soup object.
+    Returns a set of used image filenames.
+    """
+    used_images = set()
+    for img_tag in soup.find_all('img'):
+        img_src = img_tag.get('src', '')
+        if img_src:
+            img_file_name = os.path.basename(img_src)
+            used_images.add(img_file_name)
+    return used_images
+
+
+def remove_unused_images(css_dir, used_images):
+    """
+    Removes unused images from the CSS folder.
+    """
+    for root, _, files in os.walk(css_dir):
+        for file in files:
+            if file not in used_images:
+                os.remove(os.path.join(root, file))
+
+
 def split_html(input_file, output_dir, css_dir):
     """
     Splits an HTML file by extracting sections with IDs matching "section-*",
@@ -85,6 +109,9 @@ def split_html(input_file, output_dir, css_dir):
 
         # Copy the CSS folder to the section folder
         copy_css_folder(css_dir, section_folder)
+
+        # Track used images in the section
+        used_images = track_used_images(section)
 
         section_file = os.path.join(
             section_folder, f"{section_folder_name}.html")
@@ -130,13 +157,18 @@ def split_html(input_file, output_dir, css_dir):
             # Update image paths in the subsection
             # update_img_paths(subsection_soup, css_dir, subsection_folder)
 
-            # Copy the CSS folder to the section folder
-            copy_css_folder(css_dir, subsection_folder)
-
             with open(subsection_file, 'w', encoding='utf-8') as file:
                 file.write(f"""{doctype}\n{
                            head_content}<body>{str(subsection_soup)}</body></html>""")
             print(f"Saved subsection {subsection_id} to {subsection_file}")
+
+        # Remove unused images from the CSS folder for section
+        remove_unused_images(os.path.join(
+            section_folder, os.path.basename(css_dir)), used_images)
+
+        # Copy the CSS folder from the section folder to the subsection folder
+        copy_css_folder(os.path.join(
+            section_folder, os.path.basename(css_dir)), os.path.join(section_folder, 'subsections'))
 
     print("HTML splitting complete!")
 
